@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tezos NFT Tracker</title>
+    <script src="https://unpkg.com/@airgap/beacon-sdk@3/dist/walletbeacon.min.js"></script>
+    <style>
+        body { font-family: sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; color: #333; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1, h2 { color: #007bff; }
+        button {
+            background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px;
+            cursor: pointer; font-size: 16px; margin: 5px 0;
+        }
+        button:hover { background-color: #0056b3; }
+        #walletInfo { margin-bottom: 20px; padding: 10px; background-color: #e9ecef; border-radius: 4px; }
+        .nft-list, .offers-list { list-style-type: none; padding: 0; }
+        .nft-item, .offer-item {
+            display: flex; align-items: center; border: 1px solid #ddd; margin-bottom: 10px;
+            padding: 10px; border-radius: 4px; background-color: #f9f9f9;
+            flex-wrap: wrap; /* For responsiveness */
+        }
+        .nft-item img, .offer-item img {
+            width: 60px; height: 60px; object-fit: cover; border-radius: 4px; margin-right: 15px;
+        }
+        .nft-details, .offer-details { flex-grow: 1; font-size: 0.9em; }
+        .nft-details p, .offer-details p { margin: 3px 0; }
+        .profit { color: green; }
+        .loss { color: red; }
+        .offer-grade { font-weight: bold; padding: 5px; border-radius: 3px; text-align: center; min-width: 80px; }
+        .grade-great { background-color: #28a745; color: white; }
+        .grade-fair { background-color: #ffc107; color: black; }
+        .grade-lowball { background-color: #dc3545; color: white; }
+        .compact-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
+        .compact-table th, .compact-table td {
+            border: 1px solid #ddd; padding: 6px; text-align: left;
+            white-space: nowrap; /* Prevent line breaks in cells initially */
+            overflow: hidden; /* Hide overflow */
+            text-overflow: ellipsis; /* Add ellipsis for overflow */
+        }
+        .compact-table th { background-color: #007bff; color: white; }
+        .compact-table img { width: 40px; height: 40px; object-fit: cover; border-radius: 3px; vertical-align: middle; }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px; /* Half of width */
+            opacity: 0;
+            transition: opacity 0.3s;
+            white-space: normal; /* Allow text to wrap in tooltip */
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        #filters { margin-bottom: 15px; }
+        #filters input, #filters select { padding: 8px; margin-right: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        .loading { text-align: center; padding: 20px; font-size: 1.2em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tezos NFT Tracker</h1>
+
+        <div id="walletSection">
+            <button id="connectWalletBtn">Connect Temple Wallet</button>
+            <div id="walletInfo" style="display:none;">
+                <p><strong>Address:</strong> <span id="userAddress"></span></p>
+                <button id="disconnectWalletBtn">Disconnect Wallet</button>
+            </div>
+        </div>
+
+        <div id="nftCollectionSection" style="display:none;">
+            <h2>My NFT Collection</h2>
+            <div id="filters">
+                <input type="text" id="filterName" placeholder="Filter by name...">
+                <select id="sortOptions">
+                    <option value="purchaseDateDesc">Sort by Purchase Date (Newest)</option>
+                    <option value="purchaseDateAsc">Sort by Purchase Date (Oldest)</option>
+                    <option value="nameAsc">Sort by Name (A-Z)</option>
+                    <option value="nameDesc">Sort by Name (Z-A)</option>
+                </select>
+            </div>
+            <div id="nftLoading" class="loading" style="display:none;">Loading NFTs...</div>
+            <table class="compact-table">
+                <thead>
+                    <tr>
+                        <th>Image</th>
+                        <th>Name</th>
+                        <th>Qty</th>
+                        <th>Purchase Price (XTZ)</th>
+                        <th>Purchase Price (USD then)</th>
+                        <th>Sold Price (XTZ)</th>
+                        <th>P/L (XTZ)</th>
+                        <th>P/L (USD)</th>
+                    </tr>
+                </thead>
+                <tbody id="nftListBody">
+                    <!-- NFT items will be injected here -->
+                </tbody>
+            </table>
+            <p><em>Note: Purchase/sale prices and P/L are illustrative for this MVP. Full history requires deeper integration.</em></p>
+        </div>
+
+        <div id="offersSection" style="display:none;">
+            <h2>Incoming Offers</h2>
+            <div id="offersLoading" class="loading" style="display:none;">Loading offers...</div>
+            <table class="compact-table">
+                <thead>
+                    <tr>
+                        <th>NFT</th>
+                        <th>Offer (XTZ)</th>
+                        <th>Offer (USD now)</th>
+                        <th>My Purchase (XTZ)</th>
+                        <th>Artist Avg. Sale (XTZ)</th>
+                        <th>Grade</th>
+                    </tr>
+                </thead>
+                <tbody id="offersListBody">
+                    <!-- Offer items will be injected here -->
+                </tbody>
+            </table>
+             <p><em>Note: Offers and artist data are simulated for this MVP.</em></p>
+        </div>
+    </div>
+
+    <script>
+        const { BeaconWallet } = beaconSdk;
+        const wallet = new BeaconWallet({
+            name: 'Tezos NFT Tracker MVP',
+            preferredNetwork: beaconSdk.NetworkType.MAINNET // or GHOSTNET for testing
+        });
+
+        const TZKT_API_BASE = 'https://api.tzkt.io/v1'; // Mainnet
+        // const TZKT_API_BASE = 'https://api.ghostnet.tzkt.io/v1'; // Ghostnet
+
+        const COINGECKO_API_BASE = 'https://api.coingecko.com/api/v3';
+
+        // UI Elements
+        const connectWalletBtn = document.getElementById('connectWalletBtn');
+        const disconnectWalletBtn = document.getElementById('disconnectWalletBtn');
+        const walletInfoDiv = document.getElementById('walletInfo');
+        const userAddressSpan = document.getElementById('userAddress');
+        const nftCollectionSection = document.getElementById('nftCollectionSection');
+        const offersSection = document.getElementById('offersSection');
+        const nftListBody = document.getElementById('nftListBody');
+        const offersListBody = document.getElementById('offersListBody');
+        const nftLoading = document.getElementById('nftLoading');
+        const offersLoading = document.getElementById('offersLoading');
+        const filterNameInput = document.getElementById('filterName');
+        const sortOptionsSelect = document.getElementById('sortOptions');
+
+        let userAccount = null;
+        let allFetchedNfts = []; // To store all NFTs for filtering/sorting
+
+        // --- Wallet Logic ---
+        connectWalletBtn.addEventListener('click', async () => {
+            try {
+                await wallet.requestPermissions({
+                    network: { type: beaconSdk.NetworkType.MAINNET } // or GHOSTNET
+                });
+                userAccount = await wallet.client.getActiveAccount();
+                if (userAccount) {
+                    localStorage.setItem('tezosWalletAddress', userAccount.address);
+                    updateWalletUI(userAccount.address);
+                    fetchAllData(userAccount.address);
+                }
+            } catch (error) {
+                console.error('Wallet connection failed:', error);
+                alert('Failed to connect wallet. See console for details.');
+            }
+        });
+
+        disconnectWalletBtn.addEventListener('click', async () => {
+            await wallet.client.clearActiveAccount();
+            localStorage.removeItem('tezosWalletAddress');
+            userAccount = null;
+            updateWalletUI(null);
+        });
+
+        function updateWalletUI(address) {
+            if (address) {
+                userAddressSpan.textContent = address;
+                walletInfoDiv.style.display = 'block';
+                connectWalletBtn.style.display = 'none';
+                nftCollectionSection.style.display = 'block';
+                offersSection.style.display = 'block';
+            } else {
+                walletInfoDiv.style.display = 'none';
+                connectWalletBtn.style.display = 'block';
+                nftCollectionSection.style.display = 'none';
+                offersSection.style.display = 'none';
+                nftListBody.innerHTML = '';
+                offersListBody.innerHTML = '';
+                allFetchedNfts = [];
+            }
+        }
+
+        // --- Data Fetching & Processing ---
+        async function fetchAllData(address) {
+            nftLoading.style.display = 'block';
+            offersLoading.style.display = 'block';
+            nftListBody.innerHTML = ''; // Clear previous
+            offersListBody.innerHTML = ''; // Clear previous
+
+            try {
+                const currentXTZPrice = await getRealTimeXTZPrice(); // For offer USD value
+
+                // 1. Fetch NFTs currently owned
+                // We'll focus on tokens the user currently holds (balances > 0)
+                // For "all ever purchased", we'd need to parse all 'transfers' where user is 'to'
+                // This is simplified for MVP.
+                const response = await fetch(`${TZKT_API_BASE}/tokens/balances?account=${address}&token.standard=fa2&balance.gt=0&limit=1000&select=token,balance,firstLevel,lastLevel`);
+                if (!response.ok) throw new Error(`Failed to fetch NFT balances: ${response.statusText}`);
+                const balances = await response.json();
+                
+                console.log("Fetched balances:", balances);
+
+                allFetchedNfts = []; // Reset
+
+                for (const item of balances) {
+                    if (!item.token || !item.token.metadata) {
+                        console.warn("Skipping token with missing metadata:", item);
+                        continue;
+                    }
+                    const metadata = item.token.metadata;
+                    const purchaseTimestamp = new Date(item.firstTime * 1000).toISOString(); // When user first received it
+                    
+                    // SIMULATE purchase price - this is a huge simplification
+                    const simulatedPurchasePriceXTZ = (Math.random() * 10 + 1).toFixed(2); // Random 1-11 XTZ
+                    const purchasePriceUSD = await getHistoricalXTZPrice(purchaseTimestamp);
+                    const simulatedPurchasePriceUSD = purchasePriceUSD ? (simulatedPurchasePriceXTZ * purchasePriceUSD).toFixed(2) : 'N/A';
+
+                    // SIMULATE if sold (very unlikely for currently owned, but for demo)
+                    const isSold = Math.random() > 0.8; // 20% chance it was "sold" and rebought (for demo)
+                    let simulatedSalePriceXTZ = null;
+                    let simulatedSalePriceUSD = null;
+                    let profitLossXTZ = null;
+                    let profitLossUSD = null;
+
+                    if (isSold) {
+                        simulatedSalePriceXTZ = (Math.random() * 15 + 0.5).toFixed(2);
+                        const saleTimestamp = new Date(item.lastTime * 1000).toISOString(); // when user last interacted
+                        const salePriceUSDHistorical = await getHistoricalXTZPrice(saleTimestamp);
+                        simulatedSalePriceUSD = salePriceUSDHistorical ? (simulatedSalePriceXTZ * salePriceUSDHistorical).toFixed(2) : 'N/A';
+                        
+                        profitLossXTZ = (simulatedSalePriceXTZ - simulatedPurchasePriceXTZ).toFixed(2);
+                        if (purchasePriceUSD && salePriceUSDHistorical) {
+                             profitLossUSD = ((simulatedSalePriceXTZ * salePriceUSDHistorical) - (simulatedPurchasePriceXTZ * purchasePriceUSD)).toFixed(2);
+                        }
+                    }
+                    
+                    allFetchedNfts.push({
+                        id: `${item.token.contract.address}_${item.token.tokenId}`,
+                        name: metadata.name || `Token ${item.token.tokenId}`,
+                        image: मानवIpfsUrl(metadata.displayUri || metadata.thumbnailUri || metadata.artifactUri),
+                        quantity: item.balance,
+                        purchasePriceXTZ: simulatedPurchasePriceXTZ,
+                        purchasePriceUSD तत्कालीन: simulatedPurchasePriceUSD,
+                        purchaseDate: purchaseTimestamp, // For sorting
+                        salePriceXTZ: isSold ? simulatedSalePriceXTZ : null,
+                        salePriceUSD: isSold ? simulatedSalePriceUSD : null,
+                        profitLossXTZ: profitLossXTZ,
+                        profitLossUSD: profitLossUSD,
+                        // For offers and artist comparison
+                        artistAddress: item.token.contract.address, // Simplification: contract is artist
+                        tokenId: item.token.tokenId,
+                        contractAddress: item.token.contract.address
+                    });
+                }
+                
+                renderNFTs(); // Initial render with default sort
+                await generateSimulatedOffers(allFetchedNfts, currentXTZPrice);
+
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                nftListBody.innerHTML = `<tr><td colspan="8">Error loading NFTs: ${error.message}</td></tr>`;
+                offersListBody.innerHTML = `<tr><td colspan="6">Error loading offers: ${error.message}</td></tr>`;
+            } finally {
+                nftLoading.style.display = 'none';
+                offersLoading.style.display = 'none';
+            }
+        }
+
+        async function getHistoricalXTZPrice(isoTimestamp) {
+            // Coingecko needs dd-mm-yyyy
+            try {
+                const date = new Date(isoTimestamp);
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+                const year = date.getFullYear();
+                const dateString = `${day}-${month}-${year}`;
+                
+                // Basic caching for CoinGecko
+                const cacheKey = `xtz_price_${dateString}`;
+                const cachedPrice = localStorage.getItem(cacheKey);
+                if (cachedPrice) return parseFloat(cachedPrice);
+
+                const response = await fetch(`${COINGECKO_API_BASE}/coins/tezos/history?date=${dateString}&localization=false`);
+                if (!response.ok) {
+                    // If exact date fails (e.g. too recent), try to get current if date is today
+                    if (date.toDateString() === new Date().toDateString()) {
+                        return getRealTimeXTZPrice();
+                    }
+                    console.warn(`CoinGecko API error for ${dateString}: ${response.statusText}. Will return null.`);
+                    return null; // Or a default value, or throw error
+                }
+                const data = await response.json();
+                if (data.market_data && data.market_data.current_price && data.market_data.current_price.usd) {
+                    localStorage.setItem(cacheKey, data.market_data.current_price.usd);
+                    return data.market_data.current_price.usd;
+                }
+                console.warn(`No price data for Tezos on ${dateString}`);
+                return null;
+            } catch (error) {
+                console.error('Error fetching historical XTZ price:', error);
+                return null; // Fallback
+            }
+        }
+
+        async function getRealTimeXTZPrice() {
+            try {
+                const cacheKey = 'xtz_current_price';
+                const cached = JSON.parse(localStorage.getItem(cacheKey));
+                if (cached && (Date.now() - cached.timestamp < 5 * 60 * 1000)) { // Cache for 5 mins
+                    return cached.price;
+                }
+
+                const response = await fetch(`${COINGECKO_API_BASE}/simple/price?ids=tezos&vs_currencies=usd`);
+                if (!response.ok) throw new Error('Failed to fetch current XTZ price');
+                const data = await response.json();
+                const price = data.tezos.usd;
+                localStorage.setItem(cacheKey, JSON.stringify({price: price, timestamp: Date.now()}));
+                return price;
+            } catch (error) {
+                console.error('Error fetching real-time XTZ price:', error);
+                return null; // Fallback
+            }
+        }
+
+        function मानवIpfsUrl(uri) {
+            if (!uri) return 'https://via.placeholder.com/60?text=No+Art';
+            if (uri.startsWith('ipfs://')) {
+                return `https://ipfs.io/ipfs/${uri.substring(7)}`;
+            }
+            // Handle other common gateway links or direct HTTPS if necessary
+            if (uri.startsWith('https://gateway.pinata.cloud/ipfs/')) return uri;
+            if (uri.startsWith('https://cloudflare-ipfs.com/ipfs/')) return uri;
+            // Add more known gateways if needed
+            return uri; // Assume it's a direct HTTP/HTTPS URL
+        }
+        
+        function renderNFTs() {
+            nftListBody.innerHTML = ''; // Clear previous list
+
+            let filteredNfts = [...allFetchedNfts];
+            const filterText = filterNameInput.value.toLowerCase();
+            if (filterText) {
+                filteredNfts = filteredNfts.filter(nft => nft.name.toLowerCase().includes(filterText));
+            }
+
+            const sortValue = sortOptionsSelect.value;
+            filteredNfts.sort((a, b) => {
+                switch (sortValue) {
+                    case 'purchaseDateDesc':
+                        return new Date(b.purchaseDate) - new Date(a.purchaseDate);
+                    case 'purchaseDateAsc':
+                        return new Date(a.purchaseDate) - new Date(b.purchaseDate);
+                    case 'nameAsc':
+                        return a.name.localeCompare(b.name);
+                    case 'nameDesc':
+                        return b.name.localeCompare(a.name);
+                    default:
+                        return 0;
+                }
+            });
+
+            if (filteredNfts.length === 0) {
+                nftListBody.innerHTML = `<tr><td colspan="8">No NFTs found matching your criteria.</td></tr>`;
+                return;
+            }
+
+            filteredNfts.forEach(nft => {
+                const row = nftListBody.insertRow();
+                row.innerHTML = `
+                    <td><img src="${nft.image}" alt="${nft.name}" title="${nft.name}"></td>
+                    <td class="tooltip">${nft.name.length > 20 ? nft.name.substring(0, 17) + '...' : nft.name}
+                        ${nft.name.length > 20 ? `<span class="tooltiptext">${nft.name}</span>` : ''}
+                    </td>
+                    <td>${nft.quantity}</td>
+                    <td>${nft.purchasePriceXTZ || 'N/A'} Tez</td>
+                    <td>$${nft.purchasePriceUSD तत्कालीन || 'N/A'}</td>
+                    <td>${nft.salePriceXTZ ? `${nft.salePriceXTZ} Tez` : 'Not Sold'}</td>
+                    <td class="${nft.profitLossXTZ > 0 ? 'profit' : nft.profitLossXTZ < 0 ? 'loss' : ''}">${nft.profitLossXTZ !== null ? `${nft.profitLossXTZ} Tez` : 'N/A'}</td>
+                    <td class="${nft.profitLossUSD > 0 ? 'profit' : nft.profitLossUSD < 0 ? 'loss' : ''}">${nft.profitLossUSD !== null ? `$${nft.profitLossUSD}` : 'N/A'}</td>
+                `;
+            });
+        }
+
+        filterNameInput.addEventListener('input', renderNFTs);
+        sortOptionsSelect.addEventListener('change', renderNFTs);
+
+
+        // --- Offers Logic (Simulated) ---
+        async function generateSimulatedOffers(nfts, currentXTZPrice) {
+            offersListBody.innerHTML = '';
+            if (nfts.length === 0) {
+                 offersListBody.innerHTML = `<tr><td colspan="6">No NFTs to receive offers on.</td></tr>`;
+                 return;
+            }
+
+            const offers = [];
+            // Simulate offers for a few NFTs
+            for (let i = 0; i < Math.min(nfts.length, 5); i++) {
+                const nft = nfts[Math.floor(Math.random() * nfts.length)]; // Pick a random NFT
+
+                // SIMULATE artist's other sales data
+                const simulatedArtistSales = {
+                    averagePriceXTZ: (parseFloat(nft.purchasePriceXTZ) || 5) * (0.8 + Math.random() * 0.4), // +/- 20% of purchase
+                    count: Math.floor(Math.random() * 20) + 5
+                };
+
+                const offerPriceXTZ = (simulatedArtistSales.averagePriceXTZ * (0.5 + Math.random())).toFixed(2); // 50%-150% of avg
+                const offerPriceUSD = currentXTZPrice ? (offerPriceXTZ * currentXTZPrice).toFixed(2) : 'N/A';
+
+                const grade = gradeOffer(parseFloat(offerPriceXTZ), simulatedArtistSales.averagePriceXTZ);
+
+                offers.push({
+                    nftName: nft.name,
+                    nftImage: nft.image,
+                    offerPriceXTZ: offerPriceXTZ,
+                    offerPriceUSD: offerPriceUSD,
+                    originalPurchaseXTZ: nft.purchasePriceXTZ,
+                    artistAvgSaleXTZ: simulatedArtistSales.averagePriceXTZ.toFixed(2),
+                    grade: grade.text,
+                    gradeClass: grade.class
+                });
+            }
+            renderOffers(offers);
+        }
+
+        function renderOffers(offers) {
+            offersListBody.innerHTML = '';
+            if (offers.length === 0) {
+                offersListBody.innerHTML = `<tr><td colspan="6">No current offers.</td></tr>`;
+                return;
+            }
+            offers.forEach(offer => {
+                const row = offersListBody.insertRow();
+                row.innerHTML = `
+                    <td>
+                        <img src="${offer.nftImage}" alt="${offer.nftName}" style="width:30px; height:30px; margin-right:5px; vertical-align:middle;">
+                        <span class="tooltip">${offer.nftName.length > 15 ? offer.nftName.substring(0, 12) + '...' : offer.nftName}
+                            ${offer.nftName.length > 15 ? `<span class="tooltiptext">${offer.nftName}</span>` : ''}
+                        </span>
+                    </td>
+                    <td>${offer.offerPriceXTZ} Tez</td>
+                    <td>$${offer.offerPriceUSD}</td>
+                    <td>${offer.originalPurchaseXTZ || 'N/A'} Tez</td>
+                    <td>${offer.artistAvgSaleXTZ} Tez</td>
+                    <td><span class="offer-grade ${offer.gradeClass}">${offer.grade}</span></td>
+                `;
+            });
+        }
+
+        // --- Artist Comparison & Offer Grading (Simulated) ---
+        function gradeOffer(offerPriceXTZ, artistTypicalSaleXTZ) {
+            if (!artistTypicalSaleXTZ || artistTypicalSaleXTZ === 0) return { text: "N/A", class: "" }; // Cannot grade
+
+            const ratio = offerPriceXTZ / artistTypicalSaleXTZ;
+            if (ratio >= 1.1) return { text: "Great", class: "grade-great" };
+            if (ratio >= 0.9) return { text: "Fair", class: "grade-fair" };
+            return { text: "Lowball", class: "grade-lowball" };
+        }
+
+        // --- Initialization ---
+        async function init() {
+            const Pako = beaconSdk.Pako; // If needed by Beacon for compression, though often handled internally
+            // Check if previously connected
+            const storedAddress = localStorage.getItem('tezosWalletAddress');
+            // Forcing a reconnect for simplicity in this MVP, but ideally, you'd check active connection
+            // const activeAccount = await wallet.client.getActiveAccount();
+            if (storedAddress) { // Basic check, Beacon might handle session persistence better
+                 // Attempt to reconnect or prompt user
+                 // For MVP, we will just show the address and they need to click connect to refresh data
+                 // userAddressSpan.textContent = storedAddress;
+                 // walletInfoDiv.style.display = 'block';
+                 // connectWalletBtn.style.display = 'none';
+                 // nftCollectionSection.style.display = 'block';
+                 // offersSection.style.display = 'block';
+                 // To truly re-establish, you might need:
+                 // await wallet.client.setActiveAccount(someStoredAccountIdentifier);
+                 // For this MVP, we'll require a fresh connect action to load data.
+                 console.log("Previously connected address found:", storedAddress, "User needs to click 'Connect' to load data.");
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+
+    </script>
+</body>
+</html>
