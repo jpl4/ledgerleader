@@ -139,11 +139,20 @@
     </div>
 
     <script>
-        const { BeaconWallet } = window.beaconSdk;
-        const wallet = new BeaconWallet({
-            name: 'Tezos NFT Tracker MVP',
-            preferredNetwork: window.beaconSdk.NetworkType.MAINNET // or GHOSTNET for testing
-        });
+        // Wait for Beacon SDK to load
+        let wallet;
+        
+        function initializeWallet() {
+            if (window.beaconSdk && window.beaconSdk.BeaconWallet) {
+                const { BeaconWallet } = window.beaconSdk;
+                wallet = new BeaconWallet({
+                    name: 'Tezos NFT Tracker MVP',
+                    preferredNetwork: window.beaconSdk.NetworkType.MAINNET // or GHOSTNET for testing
+                });
+                return true;
+            }
+            return false;
+        }
 
         const TZKT_API_BASE = 'https://api.tzkt.io/v1'; // Mainnet
         // const TZKT_API_BASE = 'https://api.ghostnet.tzkt.io/v1'; // Ghostnet
@@ -170,6 +179,9 @@
         // --- Wallet Logic ---
         connectWalletBtn.addEventListener('click', async () => {
             try {
+                if (!initializeWallet()) {
+                    throw new Error('Beacon SDK not loaded yet. Please wait and try again.');
+                }
                 await wallet.requestPermissions({
                     network: { type: window.beaconSdk.NetworkType.MAINNET } // or GHOSTNET
                 });
@@ -186,7 +198,9 @@
         });
 
         disconnectWalletBtn.addEventListener('click', async () => {
-            await wallet.client.clearActiveAccount();
+            if (wallet) {
+                await wallet.client.clearActiveAccount();
+            }
             localStorage.removeItem('tezosWalletAddress');
             userAccount = null;
             updateWalletUI(null);
@@ -489,7 +503,9 @@
 
         // --- Initialization ---
         async function init() {
-            // Beacon SDK loaded globally as window.beaconSdk
+            // Initialize wallet when page loads
+            initializeWallet();
+            
             // Check if a wallet address was stored from a prior session.
             const storedAddress = localStorage.getItem('tezosWalletAddress');
             // In this MVP we do not automatically restore the session. Users
