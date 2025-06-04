@@ -143,12 +143,12 @@
         let wallet;
         
         function initializeWallet() {
-            if (window.beaconSdk && window.beaconSdk.BeaconWallet) {
+            if (window.beacon && window.beacon.BeaconWallet) {
                 try {
-                    const { BeaconWallet } = window.beaconSdk;
+                    const { BeaconWallet } = window.beacon;
                     wallet = new BeaconWallet({
                         name: 'Tezos NFT Tracker MVP',
-                        preferredNetwork: window.beaconSdk.NetworkType.MAINNET
+                        preferredNetwork: window.beacon.NetworkType.MAINNET
                     });
                     console.log('Wallet initialized successfully');
                     return true;
@@ -190,7 +190,7 @@
                     throw new Error('Beacon SDK not loaded yet. Please wait and try again.');
                 }
                 await wallet.requestPermissions({
-                    network: { type: window.beaconSdk.NetworkType.MAINNET } // or GHOSTNET
+                    network: { type: window.beacon.NetworkType.MAINNET } // or GHOSTNET
                 });
                 userAccount = await wallet.client.getActiveAccount();
                 if (userAccount) {
@@ -511,27 +511,27 @@
         // --- Initialization ---
         function waitForBeaconSDK() {
             return new Promise((resolve, reject) => {
-                console.log('Checking for window.beaconSdk...', !!window.beaconSdk);
+                console.log('Checking for window.beacon...', !!window.beacon);
                 
-                if (window.beaconSdk) {
+                if (window.beacon && window.beacon.BeaconWallet) {
                     console.log('Beacon SDK already available');
                     resolve();
                     return;
                 }
                 
                 let attempts = 0;
-                const maxAttempts = 100; // 10 seconds max
+                const maxAttempts = 50; // 5 seconds max
                 const checkInterval = setInterval(() => {
                     attempts++;
-                    console.log(`Attempt ${attempts}: checking for beaconSdk...`, !!window.beaconSdk);
+                    console.log(`Attempt ${attempts}: checking for beacon...`, !!window.beacon);
                     
-                    if (window.beaconSdk) {
+                    if (window.beacon && window.beacon.BeaconWallet) {
                         console.log('Beacon SDK found!');
                         clearInterval(checkInterval);
                         resolve();
                     } else if (attempts >= maxAttempts) {
                         console.error('Beacon SDK timeout after', attempts, 'attempts');
-                        console.log('Available globals:', Object.keys(window).filter(k => k.toLowerCase().includes('beacon')));
+                        console.log('Available beacon globals:', Object.keys(window).filter(k => k.toLowerCase().includes('beacon')));
                         clearInterval(checkInterval);
                         reject(new Error('Beacon SDK failed to load'));
                     }
@@ -541,7 +541,7 @@
 
         async function init() {
             console.log('Starting initialization...');
-            console.log('Current window.beaconSdk:', window.beaconSdk);
+            console.log('Current window.beacon:', window.beacon);
             
             try {
                 console.log('Waiting for Beacon SDK...');
