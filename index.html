@@ -490,22 +490,15 @@
         // --- Initialization ---
         async function init() {
             const Pako = beaconSdk.Pako; // If needed by Beacon for compression, though often handled internally
-            // Check if previously connected
+            // Check if a wallet address was stored from a prior session.
             const storedAddress = localStorage.getItem('tezosWalletAddress');
-            // Forcing a reconnect for simplicity in this MVP, but ideally, you'd check active connection
-            // const activeAccount = await wallet.client.getActiveAccount();
-            if (storedAddress) { // Basic check, Beacon might handle session persistence better
-                 // Attempt to reconnect or prompt user
-                 // For MVP, we will just show the address and they need to click connect to refresh data
-                 // userAddressSpan.textContent = storedAddress;
-                 // walletInfoDiv.style.display = 'block';
-                 // connectWalletBtn.style.display = 'none';
-                 // nftCollectionSection.style.display = 'block';
-                 // offersSection.style.display = 'block';
-                 // To truly re-establish, you might need:
-                 // await wallet.client.setActiveAccount(someStoredAccountIdentifier);
-                 // For this MVP, we'll require a fresh connect action to load data.
-                 console.log("Previously connected address found:", storedAddress, "User needs to click 'Connect' to load data.");
+            // In this MVP we do not automatically restore the session. Users
+            // must click the "Connect" button again to load their data.
+            // A full implementation would call wallet.client.getActiveAccount()
+            // and attempt to re-establish the connection automatically.
+            if (storedAddress) {
+                 console.log("Previously connected address found:", storedAddress,
+                             "but user must click 'Connect' to load data.");
             }
         }
 
