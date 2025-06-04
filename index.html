@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tezos NFT Tracker</title>
-    <script src="https://unpkg.com/@airgap/beacon-sdk@3/dist/walletbeacon.min.js"></script>
+    <script src="https://unpkg.com/@airgap/beacon-sdk@4/dist/walletbeacon.min.js"></script>
     <style>
         body { font-family: sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; color: #333; }
         .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
@@ -139,10 +139,10 @@
     </div>
 
     <script>
-        const { BeaconWallet } = beaconSdk;
+        const { BeaconWallet } = window.beaconSdk;
         const wallet = new BeaconWallet({
             name: 'Tezos NFT Tracker MVP',
-            preferredNetwork: beaconSdk.NetworkType.MAINNET // or GHOSTNET for testing
+            preferredNetwork: window.beaconSdk.NetworkType.MAINNET // or GHOSTNET for testing
         });
 
         const TZKT_API_BASE = 'https://api.tzkt.io/v1'; // Mainnet
@@ -171,7 +171,7 @@
         connectWalletBtn.addEventListener('click', async () => {
             try {
                 await wallet.requestPermissions({
-                    network: { type: beaconSdk.NetworkType.MAINNET } // or GHOSTNET
+                    network: { type: window.beaconSdk.NetworkType.MAINNET } // or GHOSTNET
                 });
                 userAccount = await wallet.client.getActiveAccount();
                 if (userAccount) {
@@ -489,7 +489,7 @@
 
         // --- Initialization ---
         async function init() {
-            const Pako = beaconSdk.Pako; // If needed by Beacon for compression, though often handled internally
+            // Beacon SDK loaded globally as window.beaconSdk
             // Check if a wallet address was stored from a prior session.
             const storedAddress = localStorage.getItem('tezosWalletAddress');
             // In this MVP we do not automatically restore the session. Users
