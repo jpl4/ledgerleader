@@ -267,10 +267,14 @@
                     allFetchedNfts.push({
                         id: `${item.token.contract.address}_${item.token.tokenId}`,
                         name: metadata.name || `Token ${item.token.tokenId}`,
-                        image: मानवIpfsUrl(metadata.displayUri || metadata.thumbnailUri || metadata.artifactUri),
+                        image: normalizeIpfsUrl(metadata.displayUri || metadata.thumbnailUri || metadata.artifactUri),
                         quantity: item.balance,
                         purchasePriceXTZ: simulatedPurchasePriceXTZ,
+<<<<<<< HEAD
                         purchasePriceUSD: simulatedPurchasePriceUSD,
+=======
+                        purchasePriceUSDThen: simulatedPurchasePriceUSD,
+>>>>>>> 2f30c076b8cc75b960cb0e08ff494aa608ac141d
                         purchaseDate: purchaseTimestamp, // For sorting
                         salePriceXTZ: isSold ? simulatedSalePriceXTZ : null,
                         salePriceUSD: isSold ? simulatedSalePriceUSD : null,
@@ -352,7 +356,7 @@
             }
         }
 
-        function मानवIpfsUrl(uri) {
+        function normalizeIpfsUrl(uri) {
             if (!uri) return 'https://via.placeholder.com/60?text=No+Art';
             if (uri.startsWith('ipfs://')) {
                 return `https://ipfs.io/ipfs/${uri.substring(7)}`;
@@ -403,7 +407,11 @@
                     </td>
                     <td>${nft.quantity}</td>
                     <td>${nft.purchasePriceXTZ || 'N/A'} Tez</td>
+<<<<<<< HEAD
                     <td>$${nft.purchasePriceUSD || 'N/A'}</td>
+=======
+                    <td>$${nft.purchasePriceUSDThen || 'N/A'}</td>
+>>>>>>> 2f30c076b8cc75b960cb0e08ff494aa608ac141d
                     <td>${nft.salePriceXTZ ? `${nft.salePriceXTZ} Tez` : 'Not Sold'}</td>
                     <td class="${nft.profitLossXTZ > 0 ? 'profit' : nft.profitLossXTZ < 0 ? 'loss' : ''}">${nft.profitLossXTZ !== null ? `${nft.profitLossXTZ} Tez` : 'N/A'}</td>
                     <td class="${nft.profitLossUSD > 0 ? 'profit' : nft.profitLossUSD < 0 ? 'loss' : ''}">${nft.profitLossUSD !== null ? `$${nft.profitLossUSD}` : 'N/A'}</td>
@@ -490,22 +498,15 @@
         // --- Initialization ---
         async function init() {
             const Pako = beaconSdk.Pako; // If needed by Beacon for compression, though often handled internally
-            // Check if previously connected
+            // Check if a wallet address was stored from a prior session.
             const storedAddress = localStorage.getItem('tezosWalletAddress');
-            // Forcing a reconnect for simplicity in this MVP, but ideally, you'd check active connection
-            // const activeAccount = await wallet.client.getActiveAccount();
-            if (storedAddress) { // Basic check, Beacon might handle session persistence better
-                 // Attempt to reconnect or prompt user
-                 // For MVP, we will just show the address and they need to click connect to refresh data
-                 // userAddressSpan.textContent = storedAddress;
-                 // walletInfoDiv.style.display = 'block';
-                 // connectWalletBtn.style.display = 'none';
-                 // nftCollectionSection.style.display = 'block';
-                 // offersSection.style.display = 'block';
-                 // To truly re-establish, you might need:
-                 // await wallet.client.setActiveAccount(someStoredAccountIdentifier);
-                 // For this MVP, we'll require a fresh connect action to load data.
-                 console.log("Previously connected address found:", storedAddress, "User needs to click 'Connect' to load data.");
+            // In this MVP we do not automatically restore the session. Users
+            // must click the "Connect" button again to load their data.
+            // A full implementation would call wallet.client.getActiveAccount()
+            // and attempt to re-establish the connection automatically.
+            if (storedAddress) {
+                 console.log("Previously connected address found:", storedAddress,
+                             "but user must click 'Connect' to load data.");
             }
         }
 
