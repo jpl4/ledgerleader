@@ -270,7 +270,7 @@
                         image: मानवIpfsUrl(metadata.displayUri || metadata.thumbnailUri || metadata.artifactUri),
                         quantity: item.balance,
                         purchasePriceXTZ: simulatedPurchasePriceXTZ,
-                        purchasePriceUSD तत्कालीन: simulatedPurchasePriceUSD,
+                        purchasePriceUSD: simulatedPurchasePriceUSD,
                         purchaseDate: purchaseTimestamp, // For sorting
                         salePriceXTZ: isSold ? simulatedSalePriceXTZ : null,
                         salePriceUSD: isSold ? simulatedSalePriceUSD : null,
@@ -403,7 +403,7 @@
                     </td>
                     <td>${nft.quantity}</td>
                     <td>${nft.purchasePriceXTZ || 'N/A'} Tez</td>
-                    <td>$${nft.purchasePriceUSD तत्कालीन || 'N/A'}</td>
+                    <td>$${nft.purchasePriceUSD || 'N/A'}</td>
                     <td>${nft.salePriceXTZ ? `${nft.salePriceXTZ} Tez` : 'Not Sold'}</td>
                     <td class="${nft.profitLossXTZ > 0 ? 'profit' : nft.profitLossXTZ < 0 ? 'loss' : ''}">${nft.profitLossXTZ !== null ? `${nft.profitLossXTZ} Tez` : 'N/A'}</td>
                     <td class="${nft.profitLossUSD > 0 ? 'profit' : nft.profitLossUSD < 0 ? 'loss' : ''}">${nft.profitLossUSD !== null ? `$${nft.profitLossUSD}` : 'N/A'}</td>
