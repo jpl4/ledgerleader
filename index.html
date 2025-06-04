@@ -270,11 +270,7 @@
                         image: normalizeIpfsUrl(metadata.displayUri || metadata.thumbnailUri || metadata.artifactUri),
                         quantity: item.balance,
                         purchasePriceXTZ: simulatedPurchasePriceXTZ,
-<<<<<<< HEAD
                         purchasePriceUSD: simulatedPurchasePriceUSD,
-=======
-                        purchasePriceUSDThen: simulatedPurchasePriceUSD,
->>>>>>> 2f30c076b8cc75b960cb0e08ff494aa608ac141d
                         purchaseDate: purchaseTimestamp, // For sorting
                         salePriceXTZ: isSold ? simulatedSalePriceXTZ : null,
                         salePriceUSD: isSold ? simulatedSalePriceUSD : null,
@@ -407,11 +403,7 @@
                     </td>
                     <td>${nft.quantity}</td>
                     <td>${nft.purchasePriceXTZ || 'N/A'} Tez</td>
-<<<<<<< HEAD
                     <td>$${nft.purchasePriceUSD || 'N/A'}</td>
-=======
-                    <td>$${nft.purchasePriceUSDThen || 'N/A'}</td>
->>>>>>> 2f30c076b8cc75b960cb0e08ff494aa608ac141d
                     <td>${nft.salePriceXTZ ? `${nft.salePriceXTZ} Tez` : 'Not Sold'}</td>
                     <td class="${nft.profitLossXTZ > 0 ? 'profit' : nft.profitLossXTZ < 0 ? 'loss' : ''}">${nft.profitLossXTZ !== null ? `${nft.profitLossXTZ} Tez` : 'N/A'}</td>
                     <td class="${nft.profitLossUSD > 0 ? 'profit' : nft.profitLossUSD < 0 ? 'loss' : ''}">${nft.profitLossUSD !== null ? `$${nft.profitLossUSD}` : 'N/A'}</td>
